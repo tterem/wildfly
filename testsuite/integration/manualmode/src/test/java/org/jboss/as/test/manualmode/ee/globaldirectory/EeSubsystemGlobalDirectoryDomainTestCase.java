@@ -27,10 +27,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.io.IOException;
-//import java.net.URL;
 
 /**
  * @author Vratislav Marek (vmarek@redhat.com)
+ * @author Tomas Terem (tterem@redhat.com)
  **/
 @RunWith(Arquillian.class)
 @RunAsClient

@@ -21,22 +21,28 @@
  */
 package org.jboss.as.test.manualmode.ee.globaldirectory;
 
-import org.jboss.arquillian.container.test.api.ContainerController;
-import org.jboss.arquillian.container.test.api.Deployer;
+import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
+import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment;
+import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
+import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
 import org.jboss.logging.Logger;
+import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import javax.ws.rs.core.Response;
 import java.io.IOException;
-
-//import java.net.URL;
+import java.net.URL;
 
 /**
  * @author Vratislav Marek (vmarek@redhat.com)
+ * @author Tomas Terem (tterem@redhat.com)
  **/
 @RunWith(Arquillian.class)
 @RunAsClient
@@ -44,22 +50,26 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
     private static Logger LOGGER = Logger.getLogger(EeSubsystemGlobalDirectoryTestCase.class);
 
-    @ArquillianResource
-    private static ContainerController containerController;
-
-    @ArquillianResource
-    Deployer deployer;
-
-//    @ArquillianResource
-//    private URL url;
-
-
     @Before
-    public void setup() {
+    public void setup() throws IOException, InterruptedException {
+        LOGGER.error("???????????????????????????????????????????????????????????????????????????????");
+        createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
+        createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
+        copyJarToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
+        copyJarToGlobalDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName());
+        register(GLOBAL_DIRECTORY_NAME);
+        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        restartServer();
     }
 
-//        URL url = new URL(this.url.toExternalForm() + "helloworld");
-//        System.out.println(HttpRequest.get(url.toExternalForm(), 10, TimeUnit.SECONDS));
+    @Deployment(name = DEPLOYMENT)
+    @TargetsContainer(CONTAINER)
+    public static WebArchive createDeployment() {
+        LOGGER.error("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWw");
+        WebArchive war = ShrinkWrap.create(WebArchive.class, DEPLOYMENT + ".war");
+        war.addClass(GlobalDirectoryDeployment.class);
+        return war;
+    }
 
     /*
         Scenario 1 - major functionality
@@ -71,12 +81,18 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         org.jboss.as.test.manualmode.ee.globaldirectory.EeSubsystemGlobalDirectoryTestCase#testModifyDependencySharedLibs
 
         Test prerequisites
-            Create temporary directory and include test jars dependency of test deployment application
+
+        Create temporary directory and include test jars dependency of test deployment application
         Define global-directory by CLI command
         Check if global-directory are registered properly and verify his attributes
         Restart server
         Deploy test application deployment
+
+
+
         Call some method from global-directory in deployment and verify method output
+
+
         Change the test jars dependency of test deployment application in temporary directory
         Restart server
         Verify in log if application deployment service is loaded correctly
@@ -86,13 +102,17 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         Call some method from global-directory in deployment and verify method output
     */
     @Test
-    public void testModifyDependencySharedLibs() throws IOException, InterruptedException {
-        copyLibraries(null);
-        register(GDN);
-        verifyProperlyRegistered(GDN, getLibraryPath());
+    public void testModifyDependencySharedLibs(@ArquillianResource URL url) throws IOException, InterruptedException {
+        LOGGER.error(url);
+        //deployApplication();
+
+        Response response = client.target(url + "global-directory/library").request().get();
+        String result = response.readEntity(String.class);
+        LOGGER.error(result);
+
         restartServer();
-        checkLogs(null);
-        deployApplication(null);
+
+
     }
 
     /*

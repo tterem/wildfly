@@ -26,25 +26,28 @@ import org.jboss.arquillian.container.test.api.Deployer;
 import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.test.integration.security.common.Utils;
+import org.jboss.as.test.integration.management.base.AbstractCliTestBase;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.jboss.shrinkwrap.api.exporter.ZipExporter;
+import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.After;
 import org.junit.Before;
-import org.wildfly.security.permission.ElytronPermission;
-import org.wildfly.test.manual.elytron.seccontext.EntryServlet;
-import org.wildfly.test.manual.elytron.seccontext.ReAuthnType;
-import org.wildfly.test.manual.elytron.seccontext.SeccontextUtil;
-import org.wildfly.test.manual.elytron.seccontext.WhoAmI;
-import org.wildfly.test.manual.elytron.seccontext.WhoAmIServlet;
 
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import java.io.File;
 import java.io.IOException;
-import java.net.SocketPermission;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -59,30 +62,33 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REM
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
-import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
+import static org.junit.Assert.assertTrue;
 
 /**
+ * Base class for global directory tests. This class contains mostly util methods that are used in tests.
+ *
  * @author Vratislav Marek (vmarek@redhat.com)
+ * @author Tomas Terem (tterem@redhat.com)
  **/
-public class EESubsystemGlobalDirectory {
+public class GlobalDirectoryBase extends AbstractCliTestBase {
 
     protected static final String SUBSYSTEM_EE = "ee";
-    protected static final String GLOBAL_DIRECTORY = "global-directory";
+    protected static final Path GLOBAL_DIRECTORY_PATH = Paths.get(TestSuiteEnvironment.getTmpDir(),"global-directory");
+    protected static final File GLOBAL_DIRECTORY_FILE = GLOBAL_DIRECTORY_PATH.toFile();
+    protected static final String GLOBAL_DIRECTORY_NAME = "global-directory";
 
-    protected static final String GLOBAL_DIRECTORY_PREFIX = "GlDir";
-
-    protected static final String tempDirPath = TestSuiteEnvironment.getTmpDir();
-    protected static final File tempDir = new File(tempDirPath);
+    protected static final File TEMP_DIR = new File(TestSuiteEnvironment.getTmpDir(),"jars");
     protected static final int MAX_RECONNECTS_TRAY = 5;
 
     protected static final String CONTAINER = "default-jbossas";
-    /*Global Directory Name*/
-    protected static final String GDN = "ShareLib";
+    protected static final String DEPLOYMENT = "deployment";
+    protected static final String DEPLOYMENT2 = "deployment2";
+    protected static final String DEPLOYMENT3 = "deployment3";
 
-    protected static final Logger LOGGER = Logger.getLogger(EESubsystemGlobalDirectory.class);
+    protected static final Logger LOGGER = Logger.getLogger(GlobalDirectoryBase.class);
 
-    protected File library;
-    protected ClientHolder client;
+    protected ClientHolder clientHolder;
+    protected Client client = ClientBuilder.newClient();
 
     @ArquillianResource
     protected static ContainerController containerController;
@@ -90,13 +96,72 @@ public class EESubsystemGlobalDirectory {
     @ArquillianResource
     protected static Deployer deployer;
 
+    protected void createGlobalDirectoryFolder() {
+        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
+            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+    }
+
+    protected static void createLibrary(String name, Class library) {
+        JavaArchive jar = ShrinkWrap.create(JavaArchive.class, name + ".jar").addClasses(library);
+        if (Files.notExists(Paths.get(TEMP_DIR.toString()))) {
+            TEMP_DIR.mkdirs();
+        }
+        jar.as(ZipExporter.class).exportTo(new File(TEMP_DIR,name + ".jar"), true);
+    }
+
+    protected static void createTextFile(String name, List<String> content) throws IOException {
+        if (Files.notExists(Paths.get(TEMP_DIR.toString()))) {
+            TEMP_DIR.mkdirs();
+        }
+        Path file = new File(TEMP_DIR,name + ".txt").toPath();
+        Files.write(file, content, StandardCharsets.UTF_8);
+    }
+
+    protected static void createCorruptedLibrary(String name, List<String> content) throws IOException {
+        if (Files.notExists(Paths.get(TEMP_DIR.toString()))) {
+            TEMP_DIR.mkdirs();
+        }
+        Path file = new File(TEMP_DIR,name + ".jar").toPath();
+        Files.write(file, content, StandardCharsets.UTF_8);
+    }
+
+    protected void copyTextFileToGlobalDirectory(String name) throws IOException {
+        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
+            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+        Path filePath = new File(TEMP_DIR,name + ".txt").toPath();
+        Files.copy(filePath, new File(GLOBAL_DIRECTORY_FILE,  name + ".txt").toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    protected void copyLibraryToGlobalDirectory(String name) throws IOException {
+        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
+            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+        Path jarPath = new File(TEMP_DIR,name + ".jar").toPath();
+        Files.copy(jarPath, new File(GLOBAL_DIRECTORY_FILE,  name + ".jar").toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    protected void copyLibraryToDirectory(String name, String path) throws IOException {
+        if (Files.notExists(Paths.get(path))) {
+            Paths.get(path).toFile().mkdirs();
+        }
+        Path jarPath = new File(TEMP_DIR,name + ".jar").toPath();
+        Files.copy(jarPath, new File(path,  name + ".jar").toPath(), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    protected void logContains(String expectedMessage) throws IOException {
+        String serverLog = String.join("\n", Files.readAllLines(getServerLogFile().toPath()));
+        assertTrue("Log doesn't contain '" + expectedMessage + "'", serverLog.contains(expectedMessage));
+    }
 
     @Before
     public void before() throws IOException {
         if (!containerController.isStarted(CONTAINER)) {
             containerController.start(CONTAINER);
         }
-        prepare();
+        createGlobalDirectoryFolder();
+        connect();
     }
 
     @After
@@ -104,56 +169,21 @@ public class EESubsystemGlobalDirectory {
         if (containerController.isStarted(CONTAINER)) {
             containerController.stop(CONTAINER);
         }
-        clear();
-    }
-
-    protected void prepare() throws IOException {
-        createLibDir();
-        connect();
-    }
-
-    protected void clear() {
-        if (library != null) {
-            library.delete();
-        }
+        client.close();
         disconnect();
     }
 
     protected void connect() {
-        if (client == null) {
-            client = ClientHolder.init();
+        if (clientHolder == null) {
+            clientHolder = ClientHolder.init();
         }
     }
 
     protected void disconnect() {
-        client = null;
-    }
-
-    protected void createLibDir() throws IOException {
-        createLibDir(GLOBAL_DIRECTORY_PREFIX);
-    }
-
-    protected void createLibDir(String prefix) throws IOException {
-        if (library == null || !library.exists()) {
-            File file = File.createTempFile(prefix, "", tempDir);
-            file.delete();
-            file.mkdir();
-            library = file;
-        }
-    }
-
-    protected String getLibraryPath() {
-        return library.getAbsolutePath();
+        clientHolder = null;
     }
 
     protected void restartServer() throws InterruptedException {
-//        // shutdown --restart
-//        final ModelNode operation = Operations.createOperation(SHUTDOWN);
-//        operation.get(RESTART).set(true);
-//
-//        ModelNode response = client.execute(operation);
-//        ModelNode outcome = response.get(OUTCOME);
-//        assertThat("Restart server failure!", outcome.asString(), is(SUCCESS));
         containerController.stop(CONTAINER);
         containerController.start(CONTAINER);
         boolean connectionOnline = false;
@@ -192,40 +222,25 @@ public class EESubsystemGlobalDirectory {
         operation.get(INCLUDE_RUNTIME).set(true);
         operation.get(OP_ADDR).set(address);
 
-        final ModelNode response = client.execute(operation);
+        final ModelNode response = clientHolder.execute(operation);
         if (response == null) {
             throw new NullPointerException("Response from cli can't be null!");
         }
     }
 
-    protected void copyLibraries(String[] expectedJars) {
-        copyLibraries(expectedJars, library.getAbsolutePath());
-    }
-
-    protected void copyLibraries(String[] expectedJars, String path) {
-        // TODO implements
-    }
-
-    private static WebArchive createEntryServletDeploymentBase(String name) {
-        return ShrinkWrap.create(WebArchive.class, name + ".war")
-                .addClasses(EntryServlet.class, WhoAmIServlet.class, WhoAmI.class, ReAuthnType.class, SeccontextUtil.class)
-                .addAsManifestResource(createPermissionsXmlAsset(new ElytronPermission("authenticate"),
-                        new ElytronPermission("getPrivateCredentials"), new ElytronPermission("getSecurityDomain"),
-                        new SocketPermission(TestSuiteEnvironment.getServerAddressNode1() + ":8180", "connect,resolve")),
-                        "permissions.xml")
-                .addAsWebInfResource(Utils.getJBossWebXmlAsset("seccontext-web"), "jboss-web.xml");
-    }
-
     /**
-     * @param expectedJars Expected Jars, the order matter, it will compare order of Jars in the log, null disable check
+     * @param expectedJars Expected Jars, the order matter, it will compare order of Jars in the log
      */
-    protected void checkLogs(String[] expectedJars) {
-        // TODO implements
-
-    }
-
-    protected void deployApplication(String appName) {
-        // TODO implements
+    protected void checkJarLoadingOrder(String[] expectedJars) throws IOException {
+        String[] logs = Files.readAllLines(getServerLogFile().toPath()).toArray(new String[]{});
+        int i = 0;
+        while (!logs[i].contains(expectedJars[0])) {
+            i++;
+        }
+        for (int j = 0; j < expectedJars.length; j++) {
+            assertThat("Jars were not loaded in correct order!", logs[i], containsString(expectedJars[j]));
+            i++;
+        }
     }
 
     /**
@@ -234,8 +249,8 @@ public class EESubsystemGlobalDirectory {
      *
      * @param name Name of new global directory
      */
-    protected ModelNode register(String name) throws IOException {
-        return register(name, library.getAbsolutePath(), true);
+    protected ModelNode registerGlobalDirectory(String name) throws IOException {
+        return registerGlobalDirectory(name, GLOBAL_DIRECTORY_PATH.toString(), true);
     }
 
     /**
@@ -243,13 +258,13 @@ public class EESubsystemGlobalDirectory {
      *
      * @param name          Name of new global directory
      * @param path
-     * @param expectSuccess If is true verify the response for success, If is false only return operation result
+     * @param expectSuccess If is true verify the response for success, if false only return operation result
      */
-    protected ModelNode register(String name, String path, boolean expectSuccess) throws IOException {
+    private ModelNode registerGlobalDirectory(String name, String path, boolean expectSuccess) throws IOException {
         // /subsystem=ee/global-directory=<<name>>:add(path=<<path>>)
         final ModelNode address = new ModelNode();
         address.add(SUBSYSTEM, SUBSYSTEM_EE)
-                .add(GLOBAL_DIRECTORY, name)
+                .add(GLOBAL_DIRECTORY_NAME, name)
                 .protect();
         final ModelNode operation = new ModelNode();
         operation.get(OP).set(ADD);
@@ -257,7 +272,7 @@ public class EESubsystemGlobalDirectory {
         operation.get(OP_ADDR).set(address);
         operation.get(PATH).set(path);
 
-        ModelNode response = client.execute(operation);
+        ModelNode response = clientHolder.execute(operation);
         ModelNode outcome = response.get(OUTCOME);
         if (expectSuccess) {
             assertThat("Registration of global directory " + name + " failure!", outcome.asString(), is(SUCCESS));
@@ -270,18 +285,18 @@ public class EESubsystemGlobalDirectory {
      *
      * @param name Name of global directory for removing
      */
-    protected ModelNode remove(String name) throws IOException {
+    protected ModelNode removeGlobalDirectory(String name) throws IOException {
         // /subsystem=ee/global-directory=<<name>>:remove
         final ModelNode address = new ModelNode();
         address.add(SUBSYSTEM, SUBSYSTEM_EE)
-                .add(GLOBAL_DIRECTORY, name)
+                .add(GLOBAL_DIRECTORY_NAME, name)
                 .protect();
         final ModelNode operation = new ModelNode();
         operation.get(OP).set(REMOVE);
         operation.get(INCLUDE_RUNTIME).set(true);
         operation.get(OP_ADDR).set(address);
 
-        ModelNode response = client.execute(operation);
+        ModelNode response = clientHolder.execute(operation);
         ModelNode outcome = response.get(OUTCOME);
         assertThat("Remove of global directory " + name + "  failure!", outcome.asString(), is(SUCCESS));
         return response;
@@ -290,8 +305,8 @@ public class EESubsystemGlobalDirectory {
     /**
      * Verify if is global directory is registered and contains right path
      *
-     * @param name Name of global directory for verify
-     * @param path Expected set path for current global directory
+     * @param name Name of global directory
+     * @param path Expected path for current global directory
      */
     protected ModelNode verifyProperlyRegistered(String name, String path) throws IOException {
         ModelNode response = readGlobalDirectory(name);
@@ -304,6 +319,18 @@ public class EESubsystemGlobalDirectory {
     }
 
     /**
+     * Verify that global directory doesn't exist
+     *
+     * @param name Name of global directory
+     */
+    protected ModelNode verifyDoesNotExist(String name) throws IOException {
+        ModelNode response = readGlobalDirectory(name);
+        ModelNode outcome = response.get(OUTCOME);
+        assertThat("Global directory " + name + " still exist!", outcome.asString(), not(SUCCESS));
+        return response;
+    }
+
+    /**
      * Read resource command for global directory
      *
      * @param name Name of global directory
@@ -312,29 +339,17 @@ public class EESubsystemGlobalDirectory {
         // /subsystem=ee/global-directory=<<name>>:read-resource
         final ModelNode address = new ModelNode();
         address.add(SUBSYSTEM, SUBSYSTEM_EE)
-                .add(GLOBAL_DIRECTORY, name)
+                .add(GLOBAL_DIRECTORY_NAME, name)
                 .protect();
         final ModelNode operation = new ModelNode();
         operation.get(OP).set(READ_RESOURCE_OPERATION);
         operation.get(INCLUDE_RUNTIME).set(true);
         operation.get(OP_ADDR).set(address);
 
-        return client.execute(operation);
+        return clientHolder.execute(operation);
     }
 
-    /**
-     * Verify global directory isn't exist
-     *
-     * @param name Name of global directory for verify
-     */
-    protected ModelNode verifyNonExist(String name) throws IOException {
-        ModelNode response = readGlobalDirectory(name);
-        ModelNode outcome = response.get(OUTCOME);
-        assertThat("Global directory " + name + " still exist!", outcome.asString(), not(SUCCESS));
-        return response;
-    }
-
-    protected static class ClientHolder {
+    private static class ClientHolder {
 
         private final ManagementClient mgmtClient;
 
@@ -343,8 +358,8 @@ public class EESubsystemGlobalDirectory {
         }
 
         protected static ClientHolder init() {
-            final ModelControllerClient client = TestSuiteEnvironment.getModelControllerClient();
-            ManagementClient mgmtClient = new ManagementClient(client, TestSuiteEnvironment.getServerAddress(),
+            final ModelControllerClient clientHolder = TestSuiteEnvironment.getModelControllerClient();
+            ManagementClient mgmtClient = new ManagementClient(clientHolder, TestSuiteEnvironment.getServerAddress(),
                     TestSuiteEnvironment.getServerPort(), "http-remoting");
             return new ClientHolder(mgmtClient);
         }
@@ -359,10 +374,11 @@ public class EESubsystemGlobalDirectory {
             return mgmtClient.getControllerClient().execute(operation);
         }
 
-        protected String getWebUri() {
-            return mgmtClient.getWebUri().toString();
-        }
-
     }
 
+    protected File getServerLogFile() {
+       String JBOSS_HOME = System.getProperty("jboss.home", "jboss-as");
+       String SERVER_MODE = Boolean.parseBoolean(System.getProperty("domain", "false")) ? "domain" : "standalone";
+       return Paths.get(JBOSS_HOME, SERVER_MODE, "log", "server.log").toFile();
+    }
 }

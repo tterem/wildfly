@@ -64,7 +64,7 @@ public class EeSubsystemTestCase extends AbstractSubsystemBaseTest {
 
     @Override
     protected String getSubsystemXsdPath() throws Exception {
-        return "schema/jboss-as-ee_4_0.xsd";
+        return "schema/jboss-as-ee_5_0.xsd";
     }
 
     @Test
@@ -119,7 +119,7 @@ public class EeSubsystemTestCase extends AbstractSubsystemBaseTest {
     private void testTransformers1_0_x_reject(ModelTestControllerVersion controllerVersion, ModelVersion modelVersion) throws Exception {
         String subsystemXml = readResource("subsystem.xml");
         //Use the non-runtime version of the extension which will happen on the HC
-        KernelServicesBuilder builder = createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT);
+        KernelServicesBuilder builder = createKernelServicesBuilder(createAdditionalInitialization());
 
         List<ModelNode> xmlOps = builder.parseXml(subsystemXml);
 
@@ -156,7 +156,7 @@ public class EeSubsystemTestCase extends AbstractSubsystemBaseTest {
     private void testTransformers1_1_x_reject(ModelTestControllerVersion controllerVersion) throws Exception {
             String subsystemXml = readResource("subsystem.xml");
             //Use the non-runtime version of the extension which will happen on the HC
-            KernelServicesBuilder builder = createKernelServicesBuilder(AdditionalInitialization.MANAGEMENT);
+            KernelServicesBuilder builder = createKernelServicesBuilder(createAdditionalInitialization());
 
             List<ModelNode> xmlOps = builder.parseXml(subsystemXml);
 

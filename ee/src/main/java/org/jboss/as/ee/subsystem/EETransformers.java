@@ -58,12 +58,18 @@ public class EETransformers implements ExtensionTransformerRegistration {
         final ModelVersion v1_0_0 = ModelVersion.create(1, 0, 0); //EAP 6.2.0
         final ModelVersion v1_1_0 = ModelVersion.create(1, 1, 0);
         final ModelVersion v3_0_0 = ModelVersion.create(3, 0, 0);
+        final ModelVersion v4_0_0 = ModelVersion.create(4, 0, 0);
+
         ChainedTransformationDescriptionBuilder chainedBuilder = TransformationDescriptionBuilder.Factory.createChainedSubystemInstance(subsystem.getCurrentSubsystemVersion());
-        ResourceTransformationDescriptionBuilder builder_3_0 = chainedBuilder.createBuilder(subsystem.getCurrentSubsystemVersion(), v3_0_0);
+
+        ResourceTransformationDescriptionBuilder builder_4_0 = chainedBuilder.createBuilder(subsystem.getCurrentSubsystemVersion(), v4_0_0);
+        builder_4_0.rejectChildResource(PathElement.pathElement(EESubsystemModel.GLOBAL_DIRECTORY));
+
+        // 4.0.0 -> 3.0.0
+        ResourceTransformationDescriptionBuilder builder_3_0 = chainedBuilder.createBuilder(v4_0_0, v3_0_0);
 
         ManagedExecutorServiceResourceDefinition.INSTANCE.registerTransformers_4_0(builder_3_0);
         ManagedScheduledExecutorServiceResourceDefinition.INSTANCE.registerTransformers_4_0(builder_3_0);
-
 
         // 3.0.0 --> 1.1.0
         ResourceTransformationDescriptionBuilder builder11 = chainedBuilder.createBuilder(v3_0_0, v1_1_0);
@@ -88,7 +94,8 @@ public class EETransformers implements ExtensionTransformerRegistration {
         chainedBuilder.buildAndRegister(subsystem, new ModelVersion[]{
                 v1_0_0,
                 v1_1_0,
-                v3_0_0
+                v3_0_0,
+                v4_0_0
         });
     }
 

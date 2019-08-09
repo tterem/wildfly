@@ -67,6 +67,11 @@ public class EeSubsystemTestCase extends AbstractSubsystemBaseTest {
         return "schema/jboss-as-ee_5_0.xsd";
     }
 
+    @Override
+    protected AdditionalInitialization createAdditionalInitialization() {
+        return AdditionalInitialization.withCapabilities(EeCapabilities.PATH_MANAGER_CAPABILITY);
+    }
+
     @Test
     public void testTransformersEAP620() throws Exception {
         testTransformers1_1(ModelTestControllerVersion.EAP_6_2_0, ModelVersion.create(1,0));
@@ -154,28 +159,29 @@ public class EeSubsystemTestCase extends AbstractSubsystemBaseTest {
     }
 
     private void testTransformers1_1_x_reject(ModelTestControllerVersion controllerVersion) throws Exception {
-            String subsystemXml = readResource("subsystem.xml");
-            //Use the non-runtime version of the extension which will happen on the HC
-            KernelServicesBuilder builder = createKernelServicesBuilder(createAdditionalInitialization());
+        String subsystemXml = readResource("subsystem.xml");
+        //Use the non-runtime version of the extension which will happen on the HC
+        KernelServicesBuilder builder = createKernelServicesBuilder(createAdditionalInitialization());
 
-            List<ModelNode> xmlOps = builder.parseXml(subsystemXml);
+        List<ModelNode> xmlOps = builder.parseXml(subsystemXml);
 
-           ModelVersion modelVersion = ModelVersion.create(1,1);
-            // Add legacy subsystems
-            builder.createLegacyKernelServicesBuilder(null, controllerVersion, modelVersion)
-                    .addMavenResourceURL("org.jboss.as:jboss-as-ee:" + controllerVersion.getMavenGavVersion());
+        ModelVersion modelVersion = ModelVersion.create(1, 1);
+        // Add legacy subsystems
+        builder.createLegacyKernelServicesBuilder(null, controllerVersion, modelVersion)
+                .addMavenResourceURL("org.jboss.as:jboss-as-ee:" + controllerVersion.getMavenGavVersion());
 
-            KernelServices mainServices = builder.build();
-            Assert.assertTrue(mainServices.isSuccessfulBoot());
+        KernelServices mainServices = builder.build();
+        Assert.assertTrue(mainServices.isSuccessfulBoot());
 
-            FailedOperationTransformationConfig config =  new FailedOperationTransformationConfig()
-            .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.CONTEXT_SERVICE)), REJECTED_RESOURCE)
-            .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.MANAGED_THREAD_FACTORY)), REJECTED_RESOURCE)
-            .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.MANAGED_EXECUTOR_SERVICE)), REJECTED_RESOURCE)
-            .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.MANAGED_SCHEDULED_EXECUTOR_SERVICE)), REJECTED_RESOURCE);
+        FailedOperationTransformationConfig config = new FailedOperationTransformationConfig()
+                .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.CONTEXT_SERVICE)), REJECTED_RESOURCE)
+                .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.MANAGED_THREAD_FACTORY)), REJECTED_RESOURCE)
+                .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.MANAGED_EXECUTOR_SERVICE)), REJECTED_RESOURCE)
+                .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.MANAGED_SCHEDULED_EXECUTOR_SERVICE)), REJECTED_RESOURCE)
+                .addFailedAttribute(PathAddress.pathAddress(EeExtension.PATH_SUBSYSTEM, PathElement.pathElement(EESubsystemModel.GLOBAL_DIRECTORY)), REJECTED_RESOURCE);
 
-            ModelTestUtils.checkFailedTransformedBootOperations(mainServices, modelVersion, xmlOps, config);
-        }
+        ModelTestUtils.checkFailedTransformedBootOperations(mainServices, modelVersion, xmlOps, config);
+    }
 
 
     @Test

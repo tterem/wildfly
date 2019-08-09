@@ -73,6 +73,7 @@ public class EeExtension implements Extension {
         rootResource.registerSubModel(ManagedExecutorServiceResourceDefinition.INSTANCE);
         rootResource.registerSubModel(ManagedScheduledExecutorServiceResourceDefinition.INSTANCE);
         rootResource.registerSubModel(new DefaultBindingsResourceDefinition(new DefaultBindingsConfigurationProcessor()));
+        rootResource.registerSubModel(GlobalDirectoryResourceDefinition.INSTANCE);
 
         subsystem.registerXMLElementWriter(EESubsystemXmlPersister.INSTANCE);
 

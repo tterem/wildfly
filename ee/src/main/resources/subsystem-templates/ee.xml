@@ -3,7 +3,7 @@
 <config default-supplement="default">
    <extension-module>org.jboss.as.ee</extension-module>
     <subsystem xmlns="urn:jboss:domain:ee:5.0">
-    <spec-descriptor-property-replacement>false</spec-descriptor-property-replacement>
+        <spec-descriptor-property-replacement>false</spec-descriptor-property-replacement>
         <concurrent>
             <context-services>
                 <context-service name="default" jndi-name="java:jboss/ee/concurrency/context/default" use-transaction-setup-provider="@@use-transaction-setup-provider@@"/>

@@ -25,12 +25,14 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.arquillian.test.api.ArquillianResource;
+import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
+import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,7 +54,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
     @Before
     public void setup() throws IOException, InterruptedException {
-        LOGGER.error("???????????????????????????????????????????????????????????????????????????????");
         createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
         createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
         copyJarToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
@@ -62,15 +63,17 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         restartServer();
     }
 
-    @Deployment(name = DEPLOYMENT)
+    @Deployment(name = DEPLOYMENT, managed = false, testable = false)
     @TargetsContainer(CONTAINER)
     public static WebArchive createDeployment() {
-        LOGGER.error("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWw");
         WebArchive war = ShrinkWrap.create(WebArchive.class, DEPLOYMENT + ".war");
         war.addClass(GlobalDirectoryDeployment.class);
+        war.addAsWebInfResource(new StringAsset("<?xml version=\"1.0\" encoding=\"UTF-8\"?><web-app><servlet-mapping>\n" +
+                "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
+                "        <url-pattern>/*</url-pattern>\n" +
+                "    </servlet-mapping></web-app>"),"web.xml");
         return war;
     }
-
     /*
         Scenario 1 - major functionality
 
@@ -102,7 +105,13 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         Call some method from global-directory in deployment and verify method output
     */
     @Test
-    public void testModifyDependencySharedLibs(@ArquillianResource URL url) throws IOException, InterruptedException {
+    public void testModifyDependencySharedLibs() throws IOException, InterruptedException {
+        ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
+        TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
+        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT + "/");
+
+        deployer.deploy(DEPLOYMENT);
+
         LOGGER.error(url);
         //deployApplication();
 
@@ -112,67 +121,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         restartServer();
 
-
-    }
-
-    /*
-        Scenario 2 - negative reaction to corrupted jar
-
-        org.jboss.as.test.manualmode.ee.globaldirectory.EeSubsystemGlobalDirectoryTestCase#testJBossModulesFoundCorruptedJarInSharedLibs
-
-        Test prerequisites
-            Create temporary directory and include corrupted test jar
-        Define global-directory by CLI command
-        Check if global-directory are registered properly and verify his attributes
-        Restart server
-        Deploy test application deployment
-        Call some method from global-directory in deployment and verify JBoss modules throw correct error message about corrupted file
-    */
-    @Test
-    public void testJBossModulesFoundCorruptedJarInSharedLibs() {
-
-    }
-
-    /*
-        Scenario 3 - verify load order
-
-        org.jboss.as.test.manualmode.ee.globaldirectory.EeSubsystemGlobalDirectoryTestCase#testVerifyLoadingOrderSharedLibs
-
-        Test prerequisites
-            Create temporary directory and include test jars with duplicities dependency of test deployment application
-            Set logging level to DEBUG
-        Define global-directory by CLI command
-        Check if global-directory are registered properly and verify his attributes
-        Restart server
-        Check log file if contains all jars with alphabetical order
-        Check if global-directory is registered properly
-        Deploy test application deployment
-        Call some method from global-directory in deployment
-        Verify result to contains expected output from jar loaded by alphabetical order first
-    */
-    @Test
-    public void testVerifyLoadingOrderSharedLibs() {
-
-    }
-
-    /*
-        Scenario 4 - load any resource
-
-        org.jboss.as.test.manualmode.ee.globaldirectory.EeSubsystemGlobalDirectoryTestCase#testReadPropertyFilesSharedLibs
-
-        Test prerequisites
-           Create temporary directory
-           Include test jars with dependency of test deployment application
-        Include test property files expected by test deployment application from library
-        Define global-directory by CLI command
-        Check if global-directory are registered properly and verify his attributes
-        Restart server
-        Deploy test application deployment
-        Call some method from global-directory in deployment
-        Verify result to contains expected output with property variables
-    */
-    @Test
-    public void testReadPropertyFilesSharedLibs() {
 
     }
 

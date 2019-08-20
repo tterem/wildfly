@@ -63,6 +63,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REM
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -82,6 +83,7 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
     protected static final String CONTAINER = "default-jbossas";
     protected static final String DEPLOYMENT = "deployment";
     protected static final String DEPLOYMENT2 = "deployment2";
+    protected static final String DEPLOYMENT3 = "deployment3";
 
     protected static final Logger LOGGER = Logger.getLogger(EESubsystemGlobalDirectory.class);
 
@@ -142,12 +144,19 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
         Files.copy(filePath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + name + ".txt"), StandardCopyOption.REPLACE_EXISTING);
     }
 
-    protected void copyLibraryToGlobalDirectory(String jar) throws IOException {
+    protected void copyLibraryToGlobalDirectory(String name) throws IOException {
         if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
             GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
         }
-        Path jarPath = Paths.get(TEMP_DIR.toString() + "/" + jar + ".jar");
-        Files.copy(jarPath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + jar + ".jar"), StandardCopyOption.REPLACE_EXISTING);
+        Path jarPath = Paths.get(TEMP_DIR.toString() + "/" + name + ".jar");
+        Files.copy(jarPath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + name + ".jar"), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    protected void copyLibraryToGlobalDirectory(String name, Path path) throws IOException {
+        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
+            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+        Files.copy(path, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + name), StandardCopyOption.REPLACE_EXISTING);
     }
 
     protected void logContains(String expectedMessage) throws IOException {
@@ -255,8 +264,18 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
     /**
      * @param expectedJars Expected Jars, the order matter, it will compare order of Jars in the log, null disable check
      */
-    protected void checkLogs(String[] expectedJars) {
-        // TODO implements
+    protected void checkLogs(String[] expectedJars) throws IOException {
+        String JBOSS_HOME = System.getProperty("jboss.home", "jboss-as");
+        String SERVER_MODE = Boolean.parseBoolean(System.getProperty("domain", "false")) ? "domain" : "standalone";
+        Path serverLogPath = Paths.get(JBOSS_HOME, SERVER_MODE, "log", "server.log");
+        List<String> logs = Files.readAllLines(serverLogPath);
+        int i = 0;
+        for (String log : logs) {
+            if (log.contains(expectedJars[i])) {
+                i++;
+            }
+        }
+        assertEquals("Expected jars were not found or were not in correct order",expectedJars.length, i);
 
     }
 

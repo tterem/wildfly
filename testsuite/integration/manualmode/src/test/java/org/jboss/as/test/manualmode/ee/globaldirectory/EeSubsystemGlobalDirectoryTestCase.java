@@ -29,9 +29,11 @@ import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment;
 import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment2;
+import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment3;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl2;
+import org.jboss.as.test.manualmode.ee.globaldirectory.util.MavenUtil;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -43,6 +45,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import javax.ws.rs.core.Response;
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
@@ -86,36 +89,19 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
               "    </servlet-mapping></web-app>"),"web.xml");
         return war;
     }
-    /*
-        Scenario 1 - major functionality
 
-        While we pre-check testing this feature, we found instability while restart server.
-        That’s why it is required several restart of server.
-        Purpose of third restart is verify if the feature is stable.
+    @Deployment(name = DEPLOYMENT3, managed = false, testable = false)
+    @TargetsContainer(CONTAINER)
+    public static WebArchive createDeployment3() {
+        WebArchive war = ShrinkWrap.create(WebArchive.class, DEPLOYMENT3 + ".war");
+        war.addClass(GlobalDirectoryDeployment3.class);
+        war.addAsWebInfResource(new StringAsset("<?xml version=\"1.0\" encoding=\"UTF-8\"?><web-app><servlet-mapping>\n" +
+              "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
+              "        <url-pattern>/*</url-pattern>\n" +
+              "    </servlet-mapping></web-app>"),"web.xml");
+        return war;
+    }
 
-        org.jboss.as.test.manualmode.ee.globaldirectory.EeSubsystemGlobalDirectoryTestCase#testModifyDependencySharedLibs
-
-        Test prerequisites
-
-        Create temporary directory and include test jars dependency of test deployment application
-        Define global-directory by CLI command
-        Check if global-directory are registered properly and verify his attributes
-        Restart server
-        Deploy test application deployment
-
-
-
-        Call some method from global-directory in deployment and verify method output
-
-
-        Change the test jars dependency of test deployment application in temporary directory
-        Restart server
-        Verify in log if application deployment service is loaded correctly
-        Call some method from global-directory in deployment and verify method output
-        Restart server
-        Verify in log if application deployment service is loaded correctly
-        Call some method from global-directory in deployment and verify method output
-    */
     @Test
     public void testModifyDependencySharedLibs() throws IOException, InterruptedException {
         ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
@@ -141,7 +127,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         restartServer();
 
-
+        deployer.undeploy(DEPLOYMENT);
     }
 
     @Test
@@ -162,7 +148,43 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
     }
 
     @Test
-    public void testVerifyLoadingOrderSharedLibs() {
+    public void testVerifyLoadingOrderSharedLibs() throws IOException, InterruptedException {
+        ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
+              TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
+        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT3 + "/");
+
+        MavenUtil mavenUtil;
+        mavenUtil = MavenUtil.create(true);
+
+        // File library1;
+        File library2;
+        File dependency;
+        try {
+            // library1 = mavenUtil.createMavenGavFile("org.eclipse.microprofile.config:microprofile-config-api:1.3");
+            library2 = mavenUtil.createMavenGavFile("org.eclipse.microprofile.config:microprofile-config-api:1.2.1");
+            dependency = mavenUtil.createMavenGavFile("org.osgi:org.osgi.annotation.versioning:1.0.0");
+        } catch (Exception e) {
+            throw new RuntimeException("Unable to get artifacts from maven via Aether library", e);
+        }
+
+        // copyLibraryToGlobalDirectory(library1.getName(), library1.toPath().toAbsolutePath());
+        copyLibraryToGlobalDirectory(library2.getName(), library2.toPath().toAbsolutePath());
+        copyLibraryToGlobalDirectory(dependency.getName(), dependency.toPath().toAbsolutePath());
+
+        register(GLOBAL_DIRECTORY_NAME);
+        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        restartServer();
+
+        deployer.deploy(DEPLOYMENT3);
+
+        Response response = client.target(url + "global-directory/library3").request().get();
+        String result = response.readEntity(String.class);
+        Assert.assertEquals("100", result);
+
+        restartServer();
+
+        deployer.undeploy(DEPLOYMENT3);
+
     }
 
     @Test
@@ -189,10 +211,12 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         deployer.deploy(DEPLOYMENT2);
 
-        Response response = client.target(url + "global-directory/library").request().get();
+        Response response = client.target(url + "global-directory/library2").request().get();
         String result = response.readEntity(String.class);
         Assert.assertEquals(propertyFileString, result);
 
         restartServer();
+
+        deployer.undeploy(DEPLOYMENT2);
     }
 }

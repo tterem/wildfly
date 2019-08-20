@@ -13,7 +13,7 @@ import javax.ws.rs.Produces;
 @Path("global-directory")
 public class GlobalDirectoryDeployment2 {
 
-   @Path("/library")
+   @Path("/library2")
    @GET
    @Produces("text/plain")
    public String get() {

@@ -81,6 +81,7 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
 
     protected static final String CONTAINER = "default-jbossas";
     protected static final String DEPLOYMENT = "deployment";
+    protected static final String DEPLOYMENT2 = "deployment2";
 
     protected static final Logger LOGGER = Logger.getLogger(EESubsystemGlobalDirectory.class);
 

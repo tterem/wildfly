@@ -28,8 +28,10 @@ import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment;
+import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment2;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
+import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl2;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -72,6 +74,18 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
                 "    </servlet-mapping></web-app>"),"web.xml");
         return war;
     }
+
+    @Deployment(name = DEPLOYMENT2, managed = false, testable = false)
+    @TargetsContainer(CONTAINER)
+    public static WebArchive createDeployment2() {
+        WebArchive war = ShrinkWrap.create(WebArchive.class, DEPLOYMENT2 + ".war");
+        war.addClass(GlobalDirectoryDeployment2.class);
+        war.addAsWebInfResource(new StringAsset("<?xml version=\"1.0\" encoding=\"UTF-8\"?><web-app><servlet-mapping>\n" +
+              "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
+              "        <url-pattern>/*</url-pattern>\n" +
+              "    </servlet-mapping></web-app>"),"web.xml");
+        return war;
+    }
     /*
         Scenario 1 - major functionality
 
@@ -110,8 +124,10 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
         createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
+
         copyLibraryToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
         copyLibraryToGlobalDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName());
+
         register(GLOBAL_DIRECTORY_NAME);
         // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
@@ -150,7 +166,33 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
     }
 
     @Test
-    public void testReadPropertyFilesSharedLibs() {
+    public void testReadPropertyFilesSharedLibs() throws IOException, InterruptedException {
+        ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
+              TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
+        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT2 + "/");
 
+        createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
+        createLibrary(GlobalDirectoryLibraryImpl2.class.getSimpleName(), GlobalDirectoryLibraryImpl2.class);
+
+        String propertyFileName = "properties";
+        String propertyFileString = "PROPERTY FILE";
+
+        createTextFile(propertyFileName, Arrays.asList(propertyFileString ));
+
+        copyLibraryToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
+        copyLibraryToGlobalDirectory(GlobalDirectoryLibraryImpl2.class.getSimpleName());
+        copyTextFileToGlobalDirectory(propertyFileName);
+
+        register(GLOBAL_DIRECTORY_NAME);
+        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        restartServer();
+
+        deployer.deploy(DEPLOYMENT2);
+
+        Response response = client.target(url + "global-directory/library").request().get();
+        String result = response.readEntity(String.class);
+        Assert.assertEquals(propertyFileString, result);
+
+        restartServer();
     }
 }

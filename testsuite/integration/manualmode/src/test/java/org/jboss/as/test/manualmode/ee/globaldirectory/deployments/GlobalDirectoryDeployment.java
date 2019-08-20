@@ -1,7 +1,7 @@
 package org.jboss.as.test.manualmode.ee.globaldirectory.deployments;
 
-//import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
-//import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
+import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
+import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -17,8 +17,7 @@ public class GlobalDirectoryDeployment {
    @GET
    @Produces("text/plain")
    public String get() {
-//      GlobalDirectoryLibrary globalDirectoryLibrary = new GlobalDirectoryLibraryImpl();
-//      return globalDirectoryLibrary.get();
-      return "hi";
+      GlobalDirectoryLibrary globalDirectoryLibrary = new GlobalDirectoryLibraryImpl();
+      return globalDirectoryLibrary.get();
    }
 }

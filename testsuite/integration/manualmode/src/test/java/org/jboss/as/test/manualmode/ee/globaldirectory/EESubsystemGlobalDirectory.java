@@ -42,10 +42,12 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -61,6 +63,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REM
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Vratislav Marek (vmarek@redhat.com)
@@ -91,14 +94,6 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
     @ArquillianResource
     protected static Deployer deployer;
 
-    protected void copyJarToGlobalDirectory(String jar) throws IOException {
-        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
-            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
-        }
-        Path jarPath = Paths.get(TEMP_DIR.toString() + "/" + jar + ".jar");
-        Files.copy(jarPath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + jar + ".jar"), StandardCopyOption.REPLACE_EXISTING);
-    }
-
     protected void cleanGlobalDirectory() throws IOException {
         Files.delete(GLOBAL_DIRECTORY_PATH);
     }
@@ -120,6 +115,46 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
             TEMP_DIR.mkdirs();
         }
         jar.as(ZipExporter.class).exportTo(new File(TEMP_DIR + "/" + name + ".jar"), true);
+    }
+
+    protected static void createTextFile(String name, List<String> content) throws IOException {
+        if (Files.notExists(Paths.get(TEMP_DIR.toString()))) {
+            TEMP_DIR.mkdirs();
+        }
+        Path file = Paths.get(TEMP_DIR_STRING + "/" + name + ".txt");
+        Files.write(file, content, StandardCharsets.UTF_8);
+    }
+
+    protected static void createCorruptedLibrary(String name, List<String> content) throws IOException {
+        if (Files.notExists(Paths.get(TEMP_DIR.toString()))) {
+            TEMP_DIR.mkdirs();
+        }
+        Path file = Paths.get(TEMP_DIR_STRING + "/" + name + ".jar");
+        Files.write(file, content, StandardCharsets.UTF_8);
+    }
+
+    protected void copyTextFileToGlobalDirectory(String name) throws IOException {
+        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
+            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+        Path filePath = Paths.get(TEMP_DIR.toString() + "/" +  name + ".txt");
+        Files.copy(filePath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + name + ".txt"), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    protected void copyLibraryToGlobalDirectory(String jar) throws IOException {
+        if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
+            GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+        Path jarPath = Paths.get(TEMP_DIR.toString() + "/" + jar + ".jar");
+        Files.copy(jarPath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + jar + ".jar"), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    protected void logContains(String expectedMessage) throws IOException {
+        String JBOSS_HOME = System.getProperty("jboss.home", "jboss-as");
+        String SERVER_MODE = Boolean.parseBoolean(System.getProperty("domain", "false")) ? "domain" : "standalone";
+        Path serverLogPath = Paths.get(JBOSS_HOME, SERVER_MODE, "log", "server.log");
+        String serverLog = String.join("\n", Files.readAllLines(serverLogPath));
+        assertTrue("Log doesn't contain '" + expectedMessage + "'", serverLog.contains(expectedMessage));
     }
 
     @Before
@@ -222,10 +257,6 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
     protected void checkLogs(String[] expectedJars) {
         // TODO implements
 
-    }
-
-    protected void deployApplication() {
-        deployer.deploy(DEPLOYMENT);
     }
 
     /**

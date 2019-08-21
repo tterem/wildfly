@@ -33,6 +33,7 @@ import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirecto
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibrary;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl2;
+import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl3;
 import org.jboss.as.test.manualmode.ee.globaldirectory.util.MavenUtil;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.logging.Logger;
@@ -151,7 +152,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
     public void testVerifyLoadingOrderSharedLibs() throws IOException, InterruptedException {
         ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
               TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
-        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT + "/");
+        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT3 + "/");
 
         MavenUtil mavenUtil;
         mavenUtil = MavenUtil.create(true);
@@ -185,16 +186,62 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
 
-        deployer.deploy(DEPLOYMENT);
+        deployer.deploy(DEPLOYMENT3);
 
-        Response response = client.target(url + "global-directory/library").request().get();
+        Response response = client.target(url + "global-directory/library3").request().get();
         String result = response.readEntity(String.class);
         Assert.assertEquals("100", result);
 
         restartServer();
 
-        deployer.undeploy(DEPLOYMENT);
+        deployer.undeploy(DEPLOYMENT3);
 
+    }
+
+    @Test
+    public void testVerifyLoadingOrderSharedLibs2() throws Exception {
+        createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
+        createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
+        createLibrary(GlobalDirectoryLibraryImpl2.class.getSimpleName(), GlobalDirectoryLibraryImpl2.class);
+        createLibrary(GlobalDirectoryLibraryImpl3.class.getSimpleName(), GlobalDirectoryLibraryImpl3.class);
+
+        GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+
+        File subDirectoryA = new File(GLOBAL_DIRECTORY_PATH.toFile(), "a");
+        File subDirectoryAB = new File(GLOBAL_DIRECTORY_PATH.toFile(), "ab");
+        File subDirectoryC = new File(GLOBAL_DIRECTORY_PATH.toFile(), "C");
+        File subDirectoryC_D = new File(subDirectoryC, "D");
+        File subDirectoryC_E = new File(subDirectoryC, "E");
+        File subDirectoryC_D_F = new File(subDirectoryC_D, "F");
+
+        copyLibraryToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
+        copyLibraryToDirectory(GlobalDirectoryLibrary.class.getSimpleName(), subDirectoryA.toString());
+        copyLibraryToDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName(), subDirectoryA.toString());
+        copyLibraryToDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName(), subDirectoryAB.toString());
+        copyLibraryToDirectory(GlobalDirectoryLibraryImpl2.class.getSimpleName(), subDirectoryC_D_F.toString());
+        copyLibraryToDirectory(GlobalDirectoryLibraryImpl2.class.getSimpleName(), subDirectoryC_E.toString());
+        copyLibraryToDirectory(GlobalDirectoryLibraryImpl3.class.getSimpleName(), subDirectoryC_E.toString());
+
+        register(GLOBAL_DIRECTORY_NAME);
+        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+
+        restartServer();
+
+        initCLI(true);
+        cli.sendLine("/subsystem=logging/logger=org.jboss.as.server.moduleservice:add(level=DEBUG)");
+
+        deployer.deploy(DEPLOYMENT);
+
+        restartServer();
+        checkLogs(new String[]{
+              "Added " + GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile().toString() + " directory as resource root",
+              "Added " + GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile().toString() + "/GlobalDirectoryLibrary.jar jar file",
+              "Added " + subDirectoryA.toString() + "/GlobalDirectoryLibraryImpl.jar jar file",
+              "Added " + subDirectoryC_D_F.toString() + "/GlobalDirectoryLibraryImpl2.jar jar file",
+              "Added " + subDirectoryC_E.toString() + "/GlobalDirectoryLibraryImpl3.jar jar file"
+        });
+
+        deployer.undeploy(DEPLOYMENT);
     }
 
     @Test

@@ -152,6 +152,15 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
         Files.copy(jarPath, Paths.get(GLOBAL_DIRECTORY_PATH.toString() + "/" + name + ".jar"), StandardCopyOption.REPLACE_EXISTING);
     }
 
+    protected void copyLibraryToDirectory(String name, String path) throws IOException {
+        if (Files.notExists(Paths.get(path))) {
+            Paths.get(path).toFile().mkdirs();
+        }
+        Path jarPath = Paths.get(TEMP_DIR.toString() + "/" + name + ".jar");
+        Files.copy(jarPath, Paths.get(path + "/" + name + ".jar"), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+
     protected void copyLibraryToGlobalDirectory(String name, Path path) throws IOException {
         if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
             GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
@@ -275,7 +284,7 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
                 i++;
             }
         }
-        assertEquals("Expected jars were not found or were not in correct order",expectedJars.length, i);
+        assertEquals("Expected jars were not found or were not in correct order", expectedJars.length, i);
 
     }
 

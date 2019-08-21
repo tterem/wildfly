@@ -21,6 +21,7 @@
  */
 package org.jboss.as.test.manualmode.ee.globaldirectory;
 
+import org.apache.commons.io.FileUtils;
 import org.jboss.arquillian.container.spi.client.container.DeploymentException;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
@@ -64,7 +65,8 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
     private static Logger LOGGER = Logger.getLogger(EeSubsystemGlobalDirectoryTestCase.class);
 
     @Before
-    public void setup() throws IOException, InterruptedException {
+    public void setup() throws Exception {
+        initCLI(true);
     }
 
     @Deployment(name = DEPLOYMENT, managed = false, testable = false)
@@ -116,7 +118,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         copyLibraryToGlobalDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName());
 
         register(GLOBAL_DIRECTORY_NAME);
-        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
 
         deployer.deploy(DEPLOYMENT);
@@ -129,6 +131,8 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         restartServer();
 
         deployer.undeploy(DEPLOYMENT);
+        remove(GLOBAL_DIRECTORY_NAME);
+        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test
@@ -136,7 +140,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         createCorruptedLibrary("corrupted", Arrays.asList("hello world"));
         copyLibraryToGlobalDirectory("corrupted");
         register(GLOBAL_DIRECTORY_NAME);
-        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
 
         try {
@@ -146,6 +150,8 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
             Assert.assertEquals(DeploymentException.class, e.getClass());
         }
         logContains("WFLYSRV0276: There is an error in opening zip file " + GLOBAL_DIRECTORY_PATH.toFile().toPath().toAbsolutePath().toString() + "/corrupted.jar");
+        remove(GLOBAL_DIRECTORY_NAME);
+        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test
@@ -183,7 +189,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
 
         register(GLOBAL_DIRECTORY_NAME);
-        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
 
         deployer.deploy(DEPLOYMENT3);
@@ -195,7 +201,8 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         restartServer();
 
         deployer.undeploy(DEPLOYMENT3);
-
+        remove(GLOBAL_DIRECTORY_NAME);
+        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test
@@ -223,7 +230,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         copyLibraryToDirectory(GlobalDirectoryLibraryImpl3.class.getSimpleName(), subDirectoryC_E.toString());
 
         register(GLOBAL_DIRECTORY_NAME);
-        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
 
         restartServer();
 
@@ -242,6 +249,8 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         });
 
         deployer.undeploy(DEPLOYMENT);
+        remove(GLOBAL_DIRECTORY_NAME);
+        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test
@@ -263,7 +272,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         copyTextFileToGlobalDirectory(propertyFileName);
 
         register(GLOBAL_DIRECTORY_NAME);
-        // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
 
         deployer.deploy(DEPLOYMENT2);
@@ -275,5 +284,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         restartServer();
 
         deployer.undeploy(DEPLOYMENT2);
+        remove(GLOBAL_DIRECTORY_NAME);
+        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 }

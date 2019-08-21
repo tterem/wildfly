@@ -214,18 +214,7 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
         clientHolder = null;
     }
 
-    protected String getLibraryPath() {
-        return library.getAbsolutePath();
-    }
-
     protected void restartServer() throws InterruptedException {
-//        // shutdown --restart
-//        final ModelNode operation = Operations.createOperation(SHUTDOWN);
-//        operation.get(RESTART).set(true);
-//
-//        ModelNode response = clientHolder.execute(operation);
-//        ModelNode outcome = response.get(OUTCOME);
-//        assertThat("Restart server failure!", outcome.asString(), is(SUCCESS));
         containerController.stop(CONTAINER);
         containerController.start(CONTAINER);
         boolean connectionOnline = false;

@@ -105,7 +105,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         return war;
     }
 
-    @Test
+    @Test // works
     public void testModifyDependencySharedLibs() throws IOException, InterruptedException {
         ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
               TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
@@ -123,19 +123,16 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         deployer.deploy(DEPLOYMENT);
 
-
         Response response = client.target(url + "global-directory/library").request().get();
         String result = response.readEntity(String.class);
         Assert.assertEquals("HELLO WORLD", result);
-
-        restartServer();
 
         deployer.undeploy(DEPLOYMENT);
         remove(GLOBAL_DIRECTORY_NAME);
         FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
-    @Test
+    @Test // improve to check if it shows in cli as well
     public void testJBossModulesFoundCorruptedJarInSharedLibs() throws IOException, InterruptedException {
         createCorruptedLibrary("corrupted", Arrays.asList("hello world"));
         copyLibraryToGlobalDirectory("corrupted");
@@ -154,7 +151,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
-    @Test
+    @Test // doesn't work as expected
     public void testVerifyLoadingOrderSharedLibs() throws IOException, InterruptedException {
         ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
               TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
@@ -179,13 +176,11 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         copyLibraryToGlobalDirectory(dependency.getName(), dependency.toPath().toAbsolutePath());
 
 
-
         createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
         createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
 
         copyLibraryToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
         copyLibraryToGlobalDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName());
-
 
 
         register(GLOBAL_DIRECTORY_NAME);
@@ -198,14 +193,12 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         String result = response.readEntity(String.class);
         Assert.assertEquals("100", result);
 
-        restartServer();
-
         deployer.undeploy(DEPLOYMENT3);
         remove(GLOBAL_DIRECTORY_NAME);
         FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
-    @Test
+    @Test // test is ok, implementation is going to be fixed
     public void testVerifyLoadingOrderSharedLibs2() throws Exception {
         createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
         createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
@@ -231,7 +224,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         register(GLOBAL_DIRECTORY_NAME);
         verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
-
         restartServer();
 
         initCLI(true);
@@ -239,7 +231,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         deployer.deploy(DEPLOYMENT);
 
-        restartServer();
         checkLogs(new String[]{
               "Added " + GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile().toString() + " directory as resource root",
               "Added " + GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile().toString() + "/GlobalDirectoryLibrary.jar jar file",
@@ -253,7 +244,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
-    @Test
+    @Test // works
     public void testReadPropertyFilesSharedLibs() throws IOException, InterruptedException {
         ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
               TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
@@ -280,8 +271,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         Response response = client.target(url + "global-directory/library2").request().get();
         String result = response.readEntity(String.class);
         Assert.assertEquals(propertyFileString, result);
-
-        restartServer();
 
         deployer.undeploy(DEPLOYMENT2);
         remove(GLOBAL_DIRECTORY_NAME);

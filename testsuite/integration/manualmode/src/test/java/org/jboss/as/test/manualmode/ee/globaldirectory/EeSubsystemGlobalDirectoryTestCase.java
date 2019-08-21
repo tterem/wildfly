@@ -41,6 +41,7 @@ import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,6 +51,7 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import static org.junit.Assert.fail;
@@ -67,6 +69,14 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
     @Before
     public void setup() throws Exception {
         initCLI(true);
+    }
+
+    @After
+    public void clean() throws IOException {
+        remove(GLOBAL_DIRECTORY_NAME);
+        verifyNonExist(GLOBAL_DIRECTORY_NAME);
+        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
+        FileUtils.deleteDirectory(TEMP_DIR);
     }
 
     @Deployment(name = DEPLOYMENT, managed = false, testable = false)
@@ -128,8 +138,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         Assert.assertEquals("HELLO WORLD", result);
 
         deployer.undeploy(DEPLOYMENT);
-        remove(GLOBAL_DIRECTORY_NAME);
-        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test // improve to check if it shows in cli as well
@@ -147,8 +155,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
             Assert.assertEquals(DeploymentException.class, e.getClass());
         }
         logContains("WFLYSRV0276: There is an error in opening zip file " + GLOBAL_DIRECTORY_PATH.toFile().toPath().toAbsolutePath().toString() + "/corrupted.jar");
-        remove(GLOBAL_DIRECTORY_NAME);
-        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test // doesn't work as expected
@@ -175,6 +181,9 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         copyLibraryToGlobalDirectory(library2.getName(), library2.toPath().toAbsolutePath());
         copyLibraryToGlobalDirectory(dependency.getName(), dependency.toPath().toAbsolutePath());
 
+        // FileUtils.deleteDirectory(library1);
+        Files.delete(library2.toPath());
+        Files.delete(dependency.toPath());
 
         createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
         createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
@@ -194,8 +203,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         Assert.assertEquals("100", result);
 
         deployer.undeploy(DEPLOYMENT3);
-        remove(GLOBAL_DIRECTORY_NAME);
-        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test // test is ok, implementation is going to be fixed
@@ -231,7 +238,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
 
         deployer.deploy(DEPLOYMENT);
 
-        checkLogs(new String[]{
+        checkDebugLogs(new String[]{
               "Added " + GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile().toString() + " directory as resource root",
               "Added " + GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile().toString() + "/GlobalDirectoryLibrary.jar jar file",
               "Added " + subDirectoryA.toString() + "/GlobalDirectoryLibraryImpl.jar jar file",
@@ -240,8 +247,6 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         });
 
         deployer.undeploy(DEPLOYMENT);
-        remove(GLOBAL_DIRECTORY_NAME);
-        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 
     @Test // works
@@ -273,7 +278,5 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         Assert.assertEquals(propertyFileString, result);
 
         deployer.undeploy(DEPLOYMENT2);
-        remove(GLOBAL_DIRECTORY_NAME);
-        FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toFile());
     }
 }

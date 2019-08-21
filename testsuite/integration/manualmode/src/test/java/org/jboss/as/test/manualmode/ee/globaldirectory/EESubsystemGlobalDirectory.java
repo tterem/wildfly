@@ -27,14 +27,12 @@ import org.jboss.arquillian.test.api.ArquillianResource;
 import org.jboss.as.arquillian.container.ManagementClient;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.test.integration.management.base.AbstractCliTestBase;
-import org.jboss.as.test.manualmode.ee.globaldirectory.deployments.GlobalDirectoryDeployment;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.exporter.ZipExporter;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.After;
 import org.junit.Before;
 
@@ -87,7 +85,6 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
 
     protected static final Logger LOGGER = Logger.getLogger(EESubsystemGlobalDirectory.class);
 
-    protected File library;
     protected ClientHolder clientHolder;
     protected Client client = ClientBuilder.newClient();
 
@@ -97,19 +94,10 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
     @ArquillianResource
     protected static Deployer deployer;
 
-    protected void cleanGlobalDirectory() throws IOException {
-        Files.delete(GLOBAL_DIRECTORY_PATH);
-    }
-
     protected void createGlobalDirectoryFolder() {
         if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
             GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
         }
-    }
-
-    protected static WebArchive createDeployment(String name) {
-        return ShrinkWrap.create(WebArchive.class, name + ".war")
-              .addClasses(GlobalDirectoryDeployment.class);
     }
 
     protected static void createLibrary(String name, Class library) {
@@ -160,7 +148,6 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
         Files.copy(jarPath, Paths.get(path + "/" + name + ".jar"), StandardCopyOption.REPLACE_EXISTING);
     }
 
-
     protected void copyLibraryToGlobalDirectory(String name, Path path) throws IOException {
         if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
             GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
@@ -181,25 +168,14 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
         if (!containerController.isStarted(CONTAINER)) {
             containerController.start(CONTAINER);
         }
-        prepare();
+        createGlobalDirectoryFolder();
+        connect();
     }
 
     @After
     public void after() {
         if (containerController.isStarted(CONTAINER)) {
             containerController.stop(CONTAINER);
-        }
-        clear();
-    }
-
-    protected void prepare() throws IOException {
-        createGlobalDirectoryFolder();
-        connect();
-    }
-
-    protected void clear() {
-        if (library != null) {
-            library.delete();
         }
         disconnect();
     }
@@ -262,7 +238,7 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
     /**
      * @param expectedJars Expected Jars, the order matter, it will compare order of Jars in the log, null disable check
      */
-    protected void checkLogs(String[] expectedJars) throws IOException {
+    protected void checkDebugLogs(String[] expectedJars) throws IOException {
         String JBOSS_HOME = System.getProperty("jboss.home", "jboss-as");
         String SERVER_MODE = Boolean.parseBoolean(System.getProperty("domain", "false")) ? "domain" : "standalone";
         Path serverLogPath = Paths.get(JBOSS_HOME, SERVER_MODE, "log", "server.log");
@@ -406,10 +382,6 @@ public class EESubsystemGlobalDirectory extends AbstractCliTestBase {
         protected ModelNode execute(final ModelNode operation) throws
                 IOException {
             return mgmtClient.getControllerClient().execute(operation);
-        }
-
-        protected String getWebUri() {
-            return mgmtClient.getWebUri().toString();
         }
 
     }

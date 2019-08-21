@@ -151,7 +151,7 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
     public void testVerifyLoadingOrderSharedLibs() throws IOException, InterruptedException {
         ManagementClient managementClient = new ManagementClient(TestSuiteEnvironment.getModelControllerClient(),
               TestSuiteEnvironment.getServerAddress(), TestSuiteEnvironment.getServerPort(), "remote+http");
-        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT3 + "/");
+        URL url = new URL(managementClient.getWebUri().toURL(), '/' + DEPLOYMENT + "/");
 
         MavenUtil mavenUtil;
         mavenUtil = MavenUtil.create(true);
@@ -171,19 +171,29 @@ public class EeSubsystemGlobalDirectoryTestCase extends EESubsystemGlobalDirecto
         copyLibraryToGlobalDirectory(library2.getName(), library2.toPath().toAbsolutePath());
         copyLibraryToGlobalDirectory(dependency.getName(), dependency.toPath().toAbsolutePath());
 
+
+
+        createLibrary(GlobalDirectoryLibrary.class.getSimpleName(), GlobalDirectoryLibrary.class);
+        createLibrary(GlobalDirectoryLibraryImpl.class.getSimpleName(), GlobalDirectoryLibraryImpl.class);
+
+        copyLibraryToGlobalDirectory(GlobalDirectoryLibrary.class.getSimpleName());
+        copyLibraryToGlobalDirectory(GlobalDirectoryLibraryImpl.class.getSimpleName());
+
+
+
         register(GLOBAL_DIRECTORY_NAME);
         // verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
         restartServer();
 
-        deployer.deploy(DEPLOYMENT3);
+        deployer.deploy(DEPLOYMENT);
 
-        Response response = client.target(url + "global-directory/library3").request().get();
+        Response response = client.target(url + "global-directory/library").request().get();
         String result = response.readEntity(String.class);
         Assert.assertEquals("100", result);
 
         restartServer();
 
-        deployer.undeploy(DEPLOYMENT3);
+        deployer.undeploy(DEPLOYMENT);
 
     }
 

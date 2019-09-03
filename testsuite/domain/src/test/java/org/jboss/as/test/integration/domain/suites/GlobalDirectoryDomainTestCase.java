@@ -234,7 +234,7 @@ public class GlobalDirectoryDomainTestCase {
       verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString(), "default");
       verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString(), "other");
 
-      Thread.sleep(2000);
+      Thread.sleep(5000);
 
       String url = new File(tmpDir, "archives/" + TEST).toURI().toURL().toString();
       ModelNode content = new ModelNode();
@@ -259,7 +259,7 @@ public class GlobalDirectoryDomainTestCase {
          testSupport.getDomainMasterLifecycleUtil().getDomainClient().restartServer("master", "main-one", 1, TimeUnit.MINUTES);
          testSupport.getDomainSlaveLifecycleUtil().getDomainClient().restartServer("slave", "other-two", 1, TimeUnit.MINUTES);
          testSupport.getDomainSlaveLifecycleUtil().getDomainClient().restartServer("slave", "main-three", 1, TimeUnit.MINUTES);
-         Thread.sleep(2000);
+         Thread.sleep(5000);
       }
    }
 

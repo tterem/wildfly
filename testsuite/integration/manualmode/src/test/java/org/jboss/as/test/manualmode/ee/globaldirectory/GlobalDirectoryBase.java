@@ -76,6 +76,10 @@ public class GlobalDirectoryBase extends AbstractCliTestBase {
     protected static final Path GLOBAL_DIRECTORY_PATH = Paths.get(TestSuiteEnvironment.getTmpDir(),"global-directory");
     protected static final File GLOBAL_DIRECTORY_FILE = GLOBAL_DIRECTORY_PATH.toFile();
     protected static final String GLOBAL_DIRECTORY_NAME = "global-directory";
+    protected static final Path SECOND_GLOBAL_DIRECTORY_PATH = Paths.get(TestSuiteEnvironment.getTmpDir(),"global-directory-2");
+    protected static final String SECOND_GLOBAL_DIRECTORY_NAME = "global-directory-2";
+
+    protected static final String DUPLICATE_ERROR_GLOBAL_DIRECTORY_CODE = "WFLYEE0121";
 
     protected static final File TEMP_DIR = new File(TestSuiteEnvironment.getTmpDir(),"jars");
     protected static final int MAX_RECONNECTS_TRAY = 5;
@@ -99,6 +103,9 @@ public class GlobalDirectoryBase extends AbstractCliTestBase {
     protected void createGlobalDirectoryFolder() {
         if (Files.notExists(GLOBAL_DIRECTORY_PATH)) {
             GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
+        }
+        if (Files.notExists(SECOND_GLOBAL_DIRECTORY_PATH)) {
+            SECOND_GLOBAL_DIRECTORY_PATH.toFile().mkdirs();
         }
     }
 
@@ -260,7 +267,7 @@ public class GlobalDirectoryBase extends AbstractCliTestBase {
      * @param path
      * @param expectSuccess If is true verify the response for success, if false only return operation result
      */
-    private ModelNode registerGlobalDirectory(String name, String path, boolean expectSuccess) throws IOException {
+    protected ModelNode registerGlobalDirectory(String name, String path, boolean expectSuccess) throws IOException {
         // /subsystem=ee/global-directory=<<name>>:add(path=<<path>>)
         final ModelNode address = new ModelNode();
         address.add(SUBSYSTEM, SUBSYSTEM_EE)

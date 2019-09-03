@@ -35,6 +35,7 @@ import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectory
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl2;
 import org.jboss.as.test.manualmode.ee.globaldirectory.libraries.GlobalDirectoryLibraryImpl3;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
+import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -50,7 +51,12 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNot.not;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.junit.Assert.fail;
 
 /**
@@ -79,6 +85,7 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
         }
 
         FileUtils.deleteDirectory(GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile());
+        FileUtils.deleteDirectory(SECOND_GLOBAL_DIRECTORY_PATH.toAbsolutePath().toFile());
         FileUtils.deleteDirectory(TEMP_DIR);
     }
 
@@ -116,6 +123,35 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
               "        <url-pattern>/*</url-pattern>\n" +
               "    </servlet-mapping></web-app>"),"web.xml");
         return war;
+    }
+
+    /**
+     * Test checking if global directory exist
+     */
+    @Test
+    public void testSmoke() throws IOException, InterruptedException {
+        registerGlobalDirectory(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString(), true);
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        restartServer();
+    }
+
+    /**
+     * Test checking rule for only one global directory
+     */
+    @Test
+    public void testSmokeOnlyOne() throws IOException, InterruptedException {
+        registerGlobalDirectory(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString(), true);
+        verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString());
+        restartServer();
+
+        final ModelNode response = registerGlobalDirectory(SECOND_GLOBAL_DIRECTORY_NAME, SECOND_GLOBAL_DIRECTORY_PATH.toString(), false);
+        ModelNode outcome = response.get(OUTCOME);
+        assertThat("Registration of global directory failure!", outcome.asString(), is(FAILED));
+        final ModelNode failureDescription = response.get(FAILURE_DESCRIPTION);
+        assertThat("Error message doesn't contains information about duplicate global directory",
+              failureDescription.asString(), containsString(DUPLICATE_ERROR_GLOBAL_DIRECTORY_CODE));
+
+        verifyDoesNotExist(SECOND_GLOBAL_DIRECTORY_NAME);
     }
 
     /**

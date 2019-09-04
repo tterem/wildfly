@@ -37,6 +37,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RES
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -244,6 +245,9 @@ public class GlobalDirectoryBase extends AbstractCliTestBase {
         int i = 0;
         while (!logs[i].contains(expectedJars[0])) {
             i++;
+            if (i == logs.length) {
+                fail("Expected debug logs not found");
+            }
         }
         for (int j = 0; j < expectedJars.length; j++) {
             assertThat("Jars were not loaded in correct order!", logs[i], containsString(expectedJars[j]));

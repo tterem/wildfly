@@ -28,6 +28,7 @@ import static org.hamcrest.core.IsNot.not;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 import static org.junit.Assert.fail;
 
 import java.io.File;
@@ -99,6 +100,10 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
                 "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
                 "        <url-pattern>/*</url-pattern>\n" +
                 "    </servlet-mapping></web-app>"), "web.xml");
+        war.addAsManifestResource(createPermissionsXmlAsset(
+              new RuntimePermission("getClassLoader"),
+              new RuntimePermission("getProtectionDomain")),
+              "permissions.xml");
         return war;
     }
 
@@ -111,6 +116,10 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
                 "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
                 "        <url-pattern>/*</url-pattern>\n" +
                 "    </servlet-mapping></web-app>"), "web.xml");
+        war.addAsManifestResource(createPermissionsXmlAsset(
+              new RuntimePermission("getClassLoader"),
+              new RuntimePermission("getProtectionDomain")),
+              "permissions.xml");
         return war;
     }
 
@@ -123,6 +132,10 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
                 "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
                 "        <url-pattern>/*</url-pattern>\n" +
                 "    </servlet-mapping></web-app>"), "web.xml");
+        war.addAsManifestResource(createPermissionsXmlAsset(
+              new RuntimePermission("getClassLoader"),
+              new RuntimePermission("getProtectionDomain")),
+              "permissions.xml");
         return war;
     }
 

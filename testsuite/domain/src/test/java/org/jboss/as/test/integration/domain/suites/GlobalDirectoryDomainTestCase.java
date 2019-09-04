@@ -67,7 +67,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.jboss.as.test.integration.domain.management.util.DomainTestSupport;
 import org.jboss.as.test.shared.TestSuiteEnvironment;
-import org.jboss.as.test.shared.TimeoutUtil;
 import org.jboss.dmr.ModelNode;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -251,10 +250,11 @@ public class GlobalDirectoryDomainTestCase {
         testSupport.getDomainSlaveLifecycleUtil().getDomainClient().restartServer("slave", "other-two", 1, TimeUnit.MINUTES);
         testSupport.getDomainSlaveLifecycleUtil().getDomainClient().restartServer("slave", "main-three", 1, TimeUnit.MINUTES);
 
+        testSupport.getDomainMasterLifecycleUtil().awaitServers(System.currentTimeMillis());
+        testSupport.getDomainSlaveLifecycleUtil().awaitServers(System.currentTimeMillis());
+
         verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString(), "default");
         verifyProperlyRegistered(GLOBAL_DIRECTORY_NAME, GLOBAL_DIRECTORY_PATH.toString(), "other");
-
-        Thread.sleep(TimeoutUtil.adjust(5000));
 
         String url = new File(tmpDir, "archives/" + TEST).toURI().toURL().toString();
         ModelNode content = new ModelNode();
@@ -279,7 +279,9 @@ public class GlobalDirectoryDomainTestCase {
             testSupport.getDomainMasterLifecycleUtil().getDomainClient().restartServer("master", "main-one", 1, TimeUnit.MINUTES);
             testSupport.getDomainSlaveLifecycleUtil().getDomainClient().restartServer("slave", "other-two", 1, TimeUnit.MINUTES);
             testSupport.getDomainSlaveLifecycleUtil().getDomainClient().restartServer("slave", "main-three", 1, TimeUnit.MINUTES);
-            Thread.sleep(TimeoutUtil.adjust(5000));
+
+            testSupport.getDomainMasterLifecycleUtil().awaitServers(System.currentTimeMillis());
+            testSupport.getDomainSlaveLifecycleUtil().awaitServers(System.currentTimeMillis());
         }
     }
 

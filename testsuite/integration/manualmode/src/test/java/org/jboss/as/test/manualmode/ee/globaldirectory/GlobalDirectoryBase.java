@@ -36,6 +36,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REM
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import static org.jboss.as.test.shared.integration.ejb.security.PermissionUtils.createPermissionsXmlAsset;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -113,6 +114,12 @@ public class GlobalDirectoryBase extends AbstractCliTestBase {
 
     protected static void createLibrary(String name, Class library) {
         JavaArchive jar = ShrinkWrap.create(JavaArchive.class, name + ".jar").addClasses(library);
+
+        jar.addAsManifestResource(createPermissionsXmlAsset(
+              new RuntimePermission("getClassLoader"),
+              new RuntimePermission("getProtectionDomain")),
+              "permissions.xml");
+
         if (Files.notExists(Paths.get(TEMP_DIR.toString()))) {
             TEMP_DIR.mkdirs();
         }

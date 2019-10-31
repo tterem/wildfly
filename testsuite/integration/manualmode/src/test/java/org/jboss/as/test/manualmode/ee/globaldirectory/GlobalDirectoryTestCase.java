@@ -28,11 +28,13 @@ import static org.hamcrest.core.IsNot.not;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
+import static org.jboss.as.test.shared.PermissionUtils.createPermissionsXmlAsset;
 import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.PropertyPermission;
 
 import javax.ws.rs.core.Response;
 
@@ -111,6 +113,7 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
                 "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
                 "        <url-pattern>/*</url-pattern>\n" +
                 "    </servlet-mapping></web-app>"), "web.xml");
+        war.addAsManifestResource(createPermissionsXmlAsset(new RuntimePermission("getClassLoader")), "permissions.xml");
         return war;
     }
 
@@ -123,6 +126,7 @@ public class GlobalDirectoryTestCase extends GlobalDirectoryBase {
                 "        <servlet-name>javax.ws.rs.core.Application</servlet-name>\n" +
                 "        <url-pattern>/*</url-pattern>\n" +
                 "    </servlet-mapping></web-app>"), "web.xml");
+        war.addAsManifestResource(createPermissionsXmlAsset(new RuntimePermission("getProtectionDomain"), new PropertyPermission("user.dir", "read")), "permissions.xml");
         return war;
     }
 
